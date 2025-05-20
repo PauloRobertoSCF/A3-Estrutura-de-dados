@@ -1,4 +1,8 @@
-// Arquivo: Bola.java
+import java.util.Stack;
+import java.util.*;
+import javax.swing.*;
+import java.awt.*;
+
 public class Bola {
     private String cor;
 
@@ -15,9 +19,6 @@ public class Bola {
         return cor;
     }
 }
-
-// Arquivo: Pilha.java
-import java.util.Stack;
 
 public class Pilha {
     private Stack<Bola> bolas = new Stack<>();
@@ -49,9 +50,6 @@ public class Pilha {
         return true;
     }
 }
-
-// Arquivo: Jogo.java
-import java.util.*;
 
 public class Jogo {
     private List<Pilha> pilhas = new ArrayList<>();
@@ -85,10 +83,6 @@ public class Jogo {
         return pilhas;
     }
 }
-
-// Arquivo: JogoGUI.java
-import javax.swing.*;
-import java.awt.*;
 
 public class JogoGUI extends JFrame {
     private Jogo jogo;
