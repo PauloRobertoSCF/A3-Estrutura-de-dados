@@ -1,0 +1,133 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+
+interface ReplacementPolicy {
+    void accessPage(int page);
+    boolean isInCache(int page);
+    void setCapacity(int capacity);
+    java.util.List<Integer> getCacheContent();
+}
+
+class FIFOPolicy implements ReplacementPolicy {
+    private Queue<Integer> queue = new LinkedList<>();
+    private Set<Integer> cache = new HashSet<>();
+    private int capacity;
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public void accessPage(int page) {
+        if (!cache.contains(page)) {
+            if (cache.size() == capacity) {
+                int removed = queue.poll();
+                cache.remove(removed);
+            }
+            cache.add(page);
+            queue.add(page);
+        }
+    }
+
+    public boolean isInCache(int page) {
+        return cache.contains(page);
+    }
+
+    public java.util.List<Integer> getCacheContent() {
+        return new ArrayList<>(queue);
+    }
+}
+
+class LRUPolicy implements ReplacementPolicy {
+    private LinkedHashMap<Integer, Integer> cacheMap;
+    private int capacity;
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+        cacheMap = new LinkedHashMap<>(capacity, 0.75f, true) {
+            protected boolean removeEldestEntry(Map.Entry eldest) {
+                return size() > LRUPolicy.this.capacity;
+            }
+        };
+    }
+
+    public void accessPage(int page) {
+        cacheMap.put(page, page);
+    }
+
+    public boolean isInCache(int page) {
+        return cacheMap.containsKey(page);
+    }
+
+    public java.util.List<Integer> getCacheContent() {
+        return new ArrayList<>(cacheMap.keySet());
+    }
+}
+
+public class CacheGUI extends JFrame {
+    private ReplacementPolicy policy;
+    private JComboBox<String> policySelector;
+    private JTextField inputField;
+    private JTextArea outputArea;
+    private final int CAPACITY = 4;
+
+    public CacheGUI() {
+        setTitle("Simulador de Cache - FIFO / LRU");
+        setSize(400, 300);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new FlowLayout());
+        policySelector = new JComboBox<>(new String[]{"FIFO", "LRU"});
+        topPanel.add(new JLabel("Política:"));
+        topPanel.add(policySelector);
+
+        inputField = new JTextField(10);
+        JButton accessButton = new JButton("Acessar Página");
+        topPanel.add(new JLabel("Página:"));
+        topPanel.add(inputField);
+        topPanel.add(accessButton);
+
+        outputArea = new JTextArea();
+        outputArea.setEditable(false);
+        JScrollPane scroll = new JScrollPane(outputArea);
+
+        add(topPanel, BorderLayout.NORTH);
+        add(scroll, BorderLayout.CENTER);
+
+        accessButton.addActionListener(e -> acessarPagina());
+        policySelector.addActionListener(e -> trocarPolitica());
+
+        trocarPolitica();
+        setVisible(true);
+    }
+
+    private void trocarPolitica() {
+        String tipo = (String) policySelector.getSelectedItem();
+        if (tipo.equals("FIFO")) {
+            policy = new FIFOPolicy();
+        } else {
+            policy = new LRUPolicy();
+        }
+        policy.setCapacity(CAPACITY);
+        outputArea.setText("Política definida para: " + tipo + "\n");
+    }
+
+    private void acessarPagina() {
+        try {
+            int page = Integer.parseInt(inputField.getText());
+            boolean hit = policy.isInCache(page);
+            policy.accessPage(page);
+            outputArea.append("Página " + page + ": " + (hit ? "HIT" : "MISS") + "\n");
+            outputArea.append("Cache: " + policy.getCacheContent() + "\n\n");
+            inputField.setText("");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Digite um número inteiro válido.");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(CacheGUI::new);
+    }
+}
