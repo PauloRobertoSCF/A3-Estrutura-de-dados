@@ -1,0 +1,145 @@
+// Arquivo: Bola.java
+public class Bola {
+    private String cor;
+
+    public Bola(String cor) {
+        this.cor = cor;
+    }
+
+    public String getCor() {
+        return cor;
+    }
+
+    @Override
+    public String toString() {
+        return cor;
+    }
+}
+
+// Arquivo: Pilha.java
+import java.util.Stack;
+
+public class Pilha {
+    private Stack<Bola> bolas = new Stack<>();
+    public static final int LIMITE = 7;
+
+    public boolean adicionarBola(Bola bola) {
+        if (bolas.size() < LIMITE && (bolas.isEmpty() || bolas.peek().getCor().equals(bola.getCor()))) {
+            bolas.push(bola);
+            return true;
+        }
+        return false;
+    }
+
+    public Bola removerBola() {
+        if (!bolas.isEmpty()) return bolas.pop();
+        return null;
+    }
+
+    public Stack<Bola> getBolas() {
+        return bolas;
+    }
+
+    public boolean estaOrganizadaPorCor() {
+        if (bolas.isEmpty()) return false;
+        String cor = bolas.peek().getCor();
+        for (Bola b : bolas) {
+            if (!b.getCor().equals(cor)) return false;
+        }
+        return true;
+    }
+}
+
+// Arquivo: Jogo.java
+import java.util.*;
+
+public class Jogo {
+    private List<Pilha> pilhas = new ArrayList<>();
+    private String[] cores = {"Vermelho", "Azul", "Verde", "Amarelo", "Roxo", "Laranja"};
+
+    public Jogo() {
+        inicializarPilhas();
+    }
+
+    private void inicializarPilhas() {
+        for (int i = 0; i < 7; i++) pilhas.add(new Pilha());
+
+        List<Bola> todasBolas = new ArrayList<>();
+        for (String cor : cores) {
+            for (int i = 0; i < 7; i++) {
+                todasBolas.add(new Bola(cor));
+            }
+        }
+
+        Collections.shuffle(todasBolas);
+
+        int index = 0;
+        for (Bola bola : todasBolas) {
+            while (!pilhas.get(index).adicionarBola(bola)) {
+                index = (index + 1) % 6;
+            }
+        }
+    }
+
+    public List<Pilha> getPilhas() {
+        return pilhas;
+    }
+}
+
+// Arquivo: JogoGUI.java
+import javax.swing.*;
+import java.awt.*;
+
+public class JogoGUI extends JFrame {
+    private Jogo jogo;
+
+    public JogoGUI() {
+        jogo = new Jogo();
+        setTitle("Classificação por Cores");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(700, 400);
+        setLayout(new GridLayout(1, 7));
+        desenharPilhas();
+        setVisible(true);
+    }
+
+    private void desenharPilhas() {
+        for (Pilha pilha : jogo.getPilhas()) {
+            JPanel panel = new JPanel();
+            panel.setLayout(new GridLayout(Pilha.LIMITE, 1));
+            panel.setBorder(BorderFactory.createTitledBorder("Pilha"));
+
+            Stack<Bola> bolas = (Stack<Bola>) pilha.getBolas().clone();
+            for (int i = Pilha.LIMITE - 1; i >= 0; i--) {
+                JLabel label = new JLabel();
+                label.setOpaque(true);
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                if (i < bolas.size()) {
+                    label.setText(bolas.get(i).getCor());
+                    label.setBackground(getCorVisual(bolas.get(i).getCor()));
+                } else {
+                    label.setText("");
+                    label.setBackground(Color.LIGHT_GRAY);
+                }
+                panel.add(label);
+            }
+            add(panel);
+        }
+    }
+
+    private Color getCorVisual(String cor) {
+        return switch (cor) {
+            case "Vermelho" -> Color.RED;
+            case "Azul" -> Color.BLUE;
+            case "Verde" -> Color.GREEN;
+            case "Amarelo" -> Color.YELLOW;
+            case "Roxo" -> new Color(128, 0, 128);
+            case "Laranja" -> Color.ORANGE;
+            default -> Color.GRAY;
+        };
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(JogoGUI::new);
+    }
+}
