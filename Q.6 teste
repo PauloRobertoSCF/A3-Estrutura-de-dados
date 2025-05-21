@@ -1,13 +1,11 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+
 import java.util.*;
 
 interface ReplacementPolicy {
     void accessPage(int page);
     boolean isInCache(int page);
     void setCapacity(int capacity);
-    java.util.List<Integer> getCacheContent();
+    List<Integer> getCacheContent();
 }
 
 class FIFOPolicy implements ReplacementPolicy {
@@ -17,6 +15,8 @@ class FIFOPolicy implements ReplacementPolicy {
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
+        queue.clear();
+        cache.clear();
     }
 
     public void accessPage(int page) {
@@ -25,8 +25,8 @@ class FIFOPolicy implements ReplacementPolicy {
                 int removed = queue.poll();
                 cache.remove(removed);
             }
+            queue.offer(page);
             cache.add(page);
-            queue.add(page);
         }
     }
 
@@ -34,7 +34,7 @@ class FIFOPolicy implements ReplacementPolicy {
         return cache.contains(page);
     }
 
-    public java.util.List<Integer> getCacheContent() {
+    public List<Integer> getCacheContent() {
         return new ArrayList<>(queue);
     }
 }
@@ -46,88 +46,59 @@ class LRUPolicy implements ReplacementPolicy {
     public void setCapacity(int capacity) {
         this.capacity = capacity;
         cacheMap = new LinkedHashMap<>(capacity, 0.75f, true) {
-            protected boolean removeEldestEntry(Map.Entry eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
                 return size() > LRUPolicy.this.capacity;
             }
         };
     }
 
     public void accessPage(int page) {
-        cacheMap.put(page, page);
+        cacheMap.put(page, 1);
     }
 
     public boolean isInCache(int page) {
         return cacheMap.containsKey(page);
     }
 
-    public java.util.List<Integer> getCacheContent() {
+    public List<Integer> getCacheContent() {
         return new ArrayList<>(cacheMap.keySet());
     }
 }
 
-public class CacheGUI extends JFrame {
-    private ReplacementPolicy policy;
-    private JComboBox<String> policySelector;
-    private JTextField inputField;
-    private JTextArea outputArea;
-    private final int CAPACITY = 4;
+public class CacheSimulador {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        ReplacementPolicy policy;
 
-    public CacheGUI() {
-        setTitle("Simulador de Cache - FIFO / LRU");
-        setSize(400, 300);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
+        System.out.println("Escolha a política de substituição (FIFO ou LRU): ");
+        String tipo = scanner.nextLine().trim().toUpperCase();
 
-        JPanel topPanel = new JPanel(new FlowLayout());
-        policySelector = new JComboBox<>(new String[]{"FIFO", "LRU"});
-        topPanel.add(new JLabel("Política:"));
-        topPanel.add(policySelector);
-
-        inputField = new JTextField(10);
-        JButton accessButton = new JButton("Acessar Página");
-        topPanel.add(new JLabel("Página:"));
-        topPanel.add(inputField);
-        topPanel.add(accessButton);
-
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        JScrollPane scroll = new JScrollPane(outputArea);
-
-        add(topPanel, BorderLayout.NORTH);
-        add(scroll, BorderLayout.CENTER);
-
-        accessButton.addActionListener(e -> acessarPagina());
-        policySelector.addActionListener(e -> trocarPolitica());
-
-        trocarPolitica();
-        setVisible(true);
-    }
-
-    private void trocarPolitica() {
-        String tipo = (String) policySelector.getSelectedItem();
         if (tipo.equals("FIFO")) {
             policy = new FIFOPolicy();
-        } else {
+        } else if (tipo.equals("LRU")) {
             policy = new LRUPolicy();
+        } else {
+            System.out.println("Política inválida!");
+            return;
         }
-        policy.setCapacity(CAPACITY);
-        outputArea.setText("Política definida para: " + tipo + "\n");
-    }
 
-    private void acessarPagina() {
-        try {
-            int page = Integer.parseInt(inputField.getText());
-            boolean hit = policy.isInCache(page);
-            policy.accessPage(page);
-            outputArea.append("Página " + page + ": " + (hit ? "HIT" : "MISS") + "\n");
-            outputArea.append("Cache: " + policy.getCacheContent() + "\n\n");
-            inputField.setText("");
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Digite um número inteiro válido.");
+        policy.setCapacity(4);
+        System.out.println("Cache iniciada com capacidade 4.");
+
+        while (true) {
+            System.out.print("\nDigite o número da página (ou 'sair' para encerrar): ");
+            String entrada = scanner.nextLine().trim();
+            if (entrada.equalsIgnoreCase("sair")) break;
+
+            try {
+                int pagina = Integer.parseInt(entrada);
+                boolean hit = policy.isInCache(pagina);
+
+                policy.accessPage(pagina);
+
+                System.out.println(hit ? "HIT!" : "MISS!");
+                System.out.println("Cache atual: " + policy.getCacheContent());
+            } catch (NumberFormatException e) {
+                System.out.println("Entrada inválida. Digite um número ou 'sair'.");
+            }
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(CacheGUI::new);
-    }
-}
