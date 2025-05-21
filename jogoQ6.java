@@ -66,39 +66,59 @@ class LRUPolicy implements ReplacementPolicy {
 }
 
 public class CacheSimulador {
+    private static ReplacementPolicy policy;
+    private static final int CAPACIDADE = 4;
+    private static String politicaAtual = "FIFO";
+
+    private static ReplacementPolicy criarPolitica(String tipo) {
+        ReplacementPolicy nova;
+        if (tipo.equalsIgnoreCase("FIFO")) {
+            nova = new FIFOPolicy();
+        } else {
+            nova = new LRUPolicy();
+        }
+        nova.setCapacity(CAPACIDADE);
+        return nova;
+    }
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        ReplacementPolicy policy;
+        policy = criarPolitica(politicaAtual);
 
-        System.out.println("Escolha a política de substituição (FIFO ou LRU): ");
-        String tipo = scanner.nextLine().trim().toUpperCase();
-
-        if (tipo.equals("FIFO")) {
-            policy = new FIFOPolicy();
-        } else if (tipo.equals("LRU")) {
-            policy = new LRUPolicy();
-        } else {
-            System.out.println("Política inválida!");
-            return;
-        }
-
-        policy.setCapacity(4);
-        System.out.println("Cache iniciada com capacidade 4.");
+        System.out.println("Simulador de Cache (Capacidade: " + CAPACIDADE + ")");
+        System.out.println("Política inicial: " + politicaAtual);
+        System.out.println("Comandos: política FIFO | política LRU | sair | [número da página]");
 
         while (true) {
-            System.out.print("\nDigite o número da página (ou 'sair' para encerrar): ");
+            System.out.print("\n> ");
             String entrada = scanner.nextLine().trim();
+
             if (entrada.equalsIgnoreCase("sair")) break;
+
+            if (entrada.toLowerCase().startsWith("politica")) {
+                String[] partes = entrada.split("\\s+");
+                if (partes.length == 2 && (partes[1].equalsIgnoreCase("FIFO") || partes[1].equalsIgnoreCase("LRU"))) {
+                    politicaAtual = partes[1].toUpperCase();
+                    policy = criarPolitica(politicaAtual);
+                    System.out.println("Política de substituição alterada para: " + politicaAtual);
+                } else {
+                    System.out.println("Uso: politica FIFO ou politica LRU");
+                }
+                continue;
+            }
 
             try {
                 int pagina = Integer.parseInt(entrada);
                 boolean hit = policy.isInCache(pagina);
 
                 policy.accessPage(pagina);
-
-                System.out.println(hit ? "HIT!" : "MISS!");
-                System.out.println("Cache atual: " + policy.getCacheContent());
+                System.out.println(hit ? "MISS!" : "ENTER!");
+                System.out.println("Cache [" + politicaAtual + "]: " + policy.getCacheContent());
             } catch (NumberFormatException e) {
-                System.out.println("Entrada inválida. Digite um número ou 'sair'.");
+                System.out.println("Entrada inválida. Digite um número ou um comando válido.");
             }
         }
+
+        System.out.println("Simulação encerrada.");
+    }
+}
