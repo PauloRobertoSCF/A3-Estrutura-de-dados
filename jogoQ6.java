@@ -102,7 +102,7 @@ public class CacheSimulador {
                     policy = criarPolitica(politicaAtual);
                     System.out.println("Política de substituição alterada para: " + politicaAtual);
                 } else {
-                    System.out.println("Uso: politica FIFO ou politica LRU");
+                    System.out.println("Essa politica nao existe. Politicas existentes: FIFO e LRU");
                 }
                 continue;
             }
