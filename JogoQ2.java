@@ -8,6 +8,8 @@ public class JogoQ2 {
     static int ultimaPilhaDestino = -1;
 
     public static void main(String[] args) {
+        long inicioTempo = System.currentTimeMillis(); // Início do temporizador
+
         inicializarPilhas();
         embaralharEBotocarBolas();
 
@@ -17,7 +19,14 @@ public class JogoQ2 {
             exibirPilhas();
 
             if (verificarVitoria()) {
+                long fimTempo = System.currentTimeMillis(); // Fim do temporizador
+                long tempoTotal = fimTempo - inicioTempo;
+                long segundos = tempoTotal / 1000;
+                long minutos = segundos / 60;
+                segundos = segundos % 60;
+
                 System.out.println("Parabéns! Você venceu o jogo!");
+                System.out.printf("Tempo total: %d minuto(s) e %d segundo(s).\n", minutos, segundos);
                 break;
             }
 
@@ -133,6 +142,10 @@ public class JogoQ2 {
             if (pilha.size() != TAMANHO_PILHA) {
                 return false;
             }
+        }
+        return true;
+    }
+}
         }
         return true;
     }
