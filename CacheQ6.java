@@ -1,37 +1,33 @@
-
 import java.util.*;
 
+// Enum indicando o tipo de acesso
+enum AccessResult {
+    ENTER, HIT
+}
+
+// Interface comum às políticas
 interface ReplacementPolicy {
-    void accessPage(int page);
-    boolean isInCache(int page);
+    AccessResult accessPage(int page);
     void setCapacity(int capacity);
     List<Integer> getCacheContent();
 }
 
+// FIFO: aceita duplicatas, não verifica presença
 class FIFOPolicy implements ReplacementPolicy {
     private Queue<Integer> queue = new LinkedList<>();
-    private Set<Integer> cache = new HashSet<>();
     private int capacity;
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
         queue.clear();
-        cache.clear();
     }
 
-    public void accessPage(int page) {
-        if (!cache.contains(page)) {
-            if (cache.size() == capacity) {
-                int removed = queue.poll();
-                cache.remove(removed);
-            }
-            queue.offer(page);
-            cache.add(page);
+    public AccessResult accessPage(int page) {
+        if (queue.size() == capacity) {
+            queue.poll(); // Remove o mais antigo
         }
-    }
-
-    public boolean isInCache(int page) {
-        return cache.contains(page);
+        queue.offer(page);
+        return AccessResult.ENTER;
     }
 
     public List<Integer> getCacheContent() {
@@ -39,6 +35,7 @@ class FIFOPolicy implements ReplacementPolicy {
     }
 }
 
+// LRU: não aceita duplicatas, usa ordem de uso
 class LRUPolicy implements ReplacementPolicy {
     private LinkedHashMap<Integer, Integer> cacheMap;
     private int capacity;
@@ -52,12 +49,14 @@ class LRUPolicy implements ReplacementPolicy {
         };
     }
 
-    public void accessPage(int page) {
-        cacheMap.put(page, 1);
-    }
-
-    public boolean isInCache(int page) {
-        return cacheMap.containsKey(page);
+    public AccessResult accessPage(int page) {
+        if (cacheMap.containsKey(page)) {
+            cacheMap.get(page); // Atualiza a ordem
+            return AccessResult.HIT;
+        } else {
+            cacheMap.put(page, 1);
+            return AccessResult.ENTER;
+        }
     }
 
     public List<Integer> getCacheContent() {
@@ -65,6 +64,7 @@ class LRUPolicy implements ReplacementPolicy {
     }
 }
 
+// Simulador
 public class CacheSimulador {
     private static ReplacementPolicy policy;
     private static final int CAPACIDADE = 4;
@@ -102,17 +102,21 @@ public class CacheSimulador {
                     policy = criarPolitica(politicaAtual);
                     System.out.println("Política de substituição alterada para: " + politicaAtual);
                 } else {
-                    System.out.println("Essa politica nao existe. Politicas existentes: FIFO e LRU");
+                    System.out.println("Essa política não existe. Políticas válidas: FIFO, LRU");
                 }
                 continue;
             }
 
             try {
                 int pagina = Integer.parseInt(entrada);
-                boolean hit = policy.isInCache(pagina);
+                AccessResult resultado = policy.accessPage(pagina);
 
-                policy.accessPage(pagina);
-                System.out.println(hit ? "MISS!" : "ENTER!");
+                if (resultado == AccessResult.HIT) {
+                    System.out.println("HIT!");
+                } else {
+                    System.out.println("ENTER!");
+                }
+
                 System.out.println("Cache [" + politicaAtual + "]: " + policy.getCacheContent());
             } catch (NumberFormatException e) {
                 System.out.println("Entrada inválida. Digite um número ou um comando válido.");
@@ -122,3 +126,4 @@ public class CacheSimulador {
         System.out.println("Simulação encerrada.");
     }
 }
+
