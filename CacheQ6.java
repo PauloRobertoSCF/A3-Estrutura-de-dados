@@ -1,33 +1,34 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.*;
+import java.util.List;
 
-// Enum indicando o tipo de acesso
 enum AccessResult {
     ENTER, HIT
 }
 
-// Interface comum às políticas
 interface ReplacementPolicy {
     AccessResult accessPage(int page);
     void setCapacity(int capacity);
     List<Integer> getCacheContent();
 }
 
-// FIFO: aceita duplicatas, não verifica presença
 class FIFOPolicy implements ReplacementPolicy {
     private Queue<Integer> queue = new LinkedList<>();
     private int capacity;
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
-        queue.clear();
+        queue.clear();  // limpa o cache ao mudar de capacidade
     }
 
     public AccessResult accessPage(int page) {
         if (queue.size() == capacity) {
-            queue.poll(); // Remove o mais antigo
+            queue.poll();
         }
         queue.offer(page);
-        return AccessResult.ENTER;
+        return AccessResult.ENTER; // FIFO sempre insere, não há HIT real
     }
 
     public List<Integer> getCacheContent() {
@@ -35,7 +36,6 @@ class FIFOPolicy implements ReplacementPolicy {
     }
 }
 
-// LRU: não aceita duplicatas, usa ordem de uso
 class LRUPolicy implements ReplacementPolicy {
     private LinkedHashMap<Integer, Integer> cacheMap;
     private int capacity;
@@ -51,7 +51,7 @@ class LRUPolicy implements ReplacementPolicy {
 
     public AccessResult accessPage(int page) {
         if (cacheMap.containsKey(page)) {
-            cacheMap.get(page); // Atualiza a ordem
+            cacheMap.get(page); // só acessa para atualizar a ordem
             return AccessResult.HIT;
         } else {
             cacheMap.put(page, 1);
@@ -64,13 +64,61 @@ class LRUPolicy implements ReplacementPolicy {
     }
 }
 
-// Simulador
-public class CacheSimulador {
-    private static ReplacementPolicy policy;
+public class CacheSimuladorGUI extends JFrame {
     private static final int CAPACIDADE = 4;
-    private static String politicaAtual = "FIFO";
 
-    private static ReplacementPolicy criarPolitica(String tipo) {
+    private ReplacementPolicy policy;
+    private String politicaAtual = "FIFO";
+
+    private JTextField inputField;
+    private JButton sendButton;
+    private JTextArea outputArea;
+    private JComboBox<String> policySelector;
+
+    public CacheSimuladorGUI() {
+        setTitle("Simulador de Cache");
+        setSize(500, 400);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        policy = criarPolitica(politicaAtual);
+
+        JPanel topPanel = new JPanel();
+        topPanel.add(new JLabel("Política:"));
+        policySelector = new JComboBox<>(new String[]{"FIFO", "LRU"});
+        policySelector.setSelectedItem(politicaAtual);
+        topPanel.add(policySelector);
+
+        outputArea = new JTextArea();
+        outputArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(outputArea);
+
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        inputField = new JTextField();
+        sendButton = new JButton("Enviar");
+        inputPanel.add(inputField, BorderLayout.CENTER);
+        inputPanel.add(sendButton, BorderLayout.EAST);
+
+        setLayout(new BorderLayout());
+        add(topPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(inputPanel, BorderLayout.SOUTH);
+
+        printInfoInicial();
+
+        sendButton.addActionListener(e -> processInput());
+        inputField.addActionListener(e -> processInput());
+        policySelector.addActionListener(e -> mudarPolitica());
+    }
+
+    private void printInfoInicial() {
+        outputArea.append("Simulador de Cache (Capacidade: " + CAPACIDADE + ")\n");
+        outputArea.append("Política inicial: " + politicaAtual + "\n");
+        outputArea.append("Digite o número da página ou comando.\n");
+        outputArea.append("Comandos: sair\n\n");
+    }
+
+    private ReplacementPolicy criarPolitica(String tipo) {
         ReplacementPolicy nova;
         if (tipo.equalsIgnoreCase("FIFO")) {
             nova = new FIFOPolicy();
@@ -81,49 +129,53 @@ public class CacheSimulador {
         return nova;
     }
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        policy = criarPolitica(politicaAtual);
-
-        System.out.println("Simulador de Cache (Capacidade: " + CAPACIDADE + ")");
-        System.out.println("Política inicial: " + politicaAtual);
-        System.out.println("Comandos: política FIFO | política LRU | sair | [número da página]");
-
-        while (true) {
-            System.out.print("\n> ");
-            String entrada = scanner.nextLine().trim();
-
-            if (entrada.equalsIgnoreCase("sair")) break;
-
-            if (entrada.toLowerCase().startsWith("politica")) {
-                String[] partes = entrada.split("\\s+");
-                if (partes.length == 2 && (partes[1].equalsIgnoreCase("FIFO") || partes[1].equalsIgnoreCase("LRU"))) {
-                    politicaAtual = partes[1].toUpperCase();
-                    policy = criarPolitica(politicaAtual);
-                    System.out.println("Política de substituição alterada para: " + politicaAtual);
-                } else {
-                    System.out.println("Essa política não existe. Políticas válidas: FIFO, LRU");
-                }
-                continue;
-            }
-
-            try {
-                int pagina = Integer.parseInt(entrada);
-                AccessResult resultado = policy.accessPage(pagina);
-
-                if (resultado == AccessResult.HIT) {
-                    System.out.println("HIT!");
-                } else {
-                    System.out.println("ENTER!");
-                }
-
-                System.out.println("Cache [" + politicaAtual + "]: " + policy.getCacheContent());
-            } catch (NumberFormatException e) {
-                System.out.println("Entrada inválida. Digite um número ou um comando válido.");
-            }
+    private void mudarPolitica() {
+        String novaPolitica = (String) policySelector.getSelectedItem();
+        if (!novaPolitica.equalsIgnoreCase(politicaAtual)) {
+            politicaAtual = novaPolitica;
+            policy = criarPolitica(politicaAtual);
+            outputArea.append("\nPolítica alterada para: " + politicaAtual + "\n");
+            outputArea.append("Cache reiniciado.\n\n");
         }
 
-        System.out.println("Simulação encerrada.");
+        // Reativar interface se estiver desabilitada
+        if (!sendButton.isEnabled()) {
+            sendButton.setEnabled(true);
+            inputField.setEnabled(true);
+            policySelector.setEnabled(true);
+            outputArea.append("Interface reativada após troca de política.\n\n");
+        }
+    }
+
+    private void processInput() {
+        String entrada = inputField.getText().trim();
+        inputField.setText("");
+
+        if (entrada.equalsIgnoreCase("sair")) {
+            outputArea.append("Simulação encerrada.\n");
+            sendButton.setEnabled(false);
+            inputField.setEnabled(false);
+            policySelector.setEnabled(true); // ainda permite trocar política
+            return;
+        }
+
+        try {
+            int pagina = Integer.parseInt(entrada);
+            AccessResult resultado = policy.accessPage(pagina);
+
+            if (resultado == AccessResult.HIT) {
+                outputArea.append("HIT!\n");
+            } else {
+                outputArea.append("ENTER!\n");
+            }
+
+            outputArea.append("Cache [" + politicaAtual + "]: " + policy.getCacheContent() + "\n\n");
+        } catch (NumberFormatException e) {
+            outputArea.append("Entrada inválida. Digite um número ou comando válido.\n\n");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new CacheSimuladorGUI().setVisible(true));
     }
 }
-
