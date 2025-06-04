@@ -3,6 +3,7 @@ import java.util.*;
 import java.util.List;
 import javax.swing.*;
 
+
 enum AccessResult {
     ENTER, HIT
 }
@@ -46,14 +47,15 @@ class LRUPolicy implements ReplacementPolicy {
     private int capacity;
 
     // define a capacidade do cache e inicializa o mapa com a política LRU
-    public void setCapacity(int capacity) {
-        this.capacity = capacity;
-        cacheMap = new LinkedHashMap<>(capacity, 0.75f, true) {
-            protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
-                return size() > LRUPolicy.this.capacity;
-            }
-        };
-    }
+public void setCapacity(int capacity) {
+    this.capacity = capacity;
+    cacheMap = new LinkedHashMap<Integer, Integer>(capacity, 0.75f, true) {
+        protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
+            return size() > LRUPolicy.this.capacity;
+        }
+    };
+}
+
 
     // acessa uma página, atualizando a ordem de uso ou inserindo-a no cache
     public AccessResult accessPage(int page) {
